@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+
+<head>
+    <title>MLBB Assassin</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous" />
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+
+    <style>
+        /* --accent changes with the hero's type (set by JavaScript) */
+        :root { --accent: #ff3c5a; --accent-rgb: 255, 60, 90; }
+
+        body {
+            background: #0d0d16;
+            color: #e8e8f4;
+            font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+            font-size: 1.1rem;
+            min-height: 100vh;
+        }
+
+        h1 { font-weight: 700; letter-spacing: .15em; }
+        h1 span { color: var(--accent); }
+
+        /* ---------- Card ---------- */
+        .hero-card {
+            display: grid;
+            grid-template-columns: 5fr 6fr;
+            overflow: hidden;
+            background: #151522;
+            border: 1px solid rgba(var(--accent-rgb), .6);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(var(--accent-rgb), .18);
+        }
+
+        .art { position: relative; min-height: 420px; background: rgba(var(--accent-rgb), .15); }
+        .art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+        .art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to right, transparent 70%, #151522); }
+        .ph { position: absolute; inset: 0; display: grid; place-items: center; font-size: 7rem; font-weight: 700; color: rgba(255, 255, 255, .1); }
+
+        .info { display: flex; flex-direction: column; gap: 10px; padding: 32px; }
+
+        .role {
+            align-self: flex-start;
+            padding: 2px 12px;
+            font-size: .9rem;
+            font-weight: 600;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 20px;
+        }
+
+        .name { margin: 0; font-size: clamp(2.2rem, 5vw, 3.2rem); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 1.05; }
+        .title { margin: 0; color: var(--accent); font-weight: 600; letter-spacing: .06em; }
+        .full { margin: -6px 0 0; color: #8d90aa; }
+
+        .diff-row { display: flex; justify-content: space-between; margin-top: 8px; font-size: .9rem; letter-spacing: .1em; text-transform: uppercase; color: #8d90aa; }
+        .diff-row b { color: #e8e8f4; }
+        .bar { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+        .seg { height: 8px; border-radius: 4px; background: #2a2a40; }
+        .seg.on { background: var(--accent); }
+
+        .desc { margin: 10px 0 0; color: #cfd1e3; }
+        .empty { color: #6c6f85; font-style: italic; }
+
+        /* ---------- Navigation ---------- */
+        .nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; color: #8d90aa; }
+        .btn-nav { padding: 6px 20px; font-weight: 600; color: #e8e8f4; background: transparent; border: 1px solid #3a3a55; border-radius: 8px; }
+        .btn-nav:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+        .btn-nav:disabled { opacity: .3; }
+
+        /* ---------- Roster strip ---------- */
+        .roster { position: relative; display: flex; gap: 10px; overflow-x: auto; padding: 18px 4px 10px; scrollbar-width: thin; }
+        .thumb { flex: 0 0 64px; padding: 0; border: 0; background: none; color: #8d90aa; font: inherit; font-size: .8rem; text-align: center; opacity: .55; }
+        .thumb:hover { opacity: .9; }
+        .thumb.active { opacity: 1; color: #fff; }
+        .thumb .pic { position: relative; display: block; width: 64px; height: 64px; margin-bottom: 4px; overflow: hidden; background: #1c1c2e; border: 2px solid transparent; border-radius: 10px; }
+        .thumb.active .pic { border-color: var(--t); }
+        .thumb .pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+        .thumb .tl { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.6rem; font-weight: 700; color: rgba(255, 255, 255, .15); }
+
+        .hero-fade { animation: heroFade .35s ease; }
+        @keyframes heroFade { from { opacity: 0; } }
+
+        @media (max-width: 767px) {
+            .hero-card { grid-template-columns: 1fr; }
+            .art { min-height: 320px; }
+            .art::after { background: linear-gradient(to top, #151522, transparent 40%); }
+            .info { padding: 22px; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container py-4" style="max-width: 900px;">
+
+        <h1 class="h3 text-center mb-4">CHOOSE YOUR <span>ASSASSINS</span></h1>
+
+        <!-- The profile card -->
+        <article id="card" class="hero-card">
+            <div class="art">
+                <div id="ph" class="ph"></div>
+                <img id="img" alt="">
+            </div>
+
+            <div class="info">
+                <span id="role" class="role"></span>
+                <h2 id="name" class="name"></h2>
+                <p id="title" class="title"></p>
+                <p id="full" class="full"></p>
+
+                <div class="diff-row"><span>Difficulty</span><b id="diffText"></b></div>
+                <div id="bar" class="bar"></div>
+
+                <p id="desc" class="desc"></p>
+            </div>
+        </article>
+
+        <!-- Previous / Next -->
+        <div class="nav-row">
+            <button id="prevBtn" class="btn-nav">&laquo; Prev</button>
+            <span id="counter"></span>
+            <button id="nextBtn" class="btn-nav">Next &raquo;</button>
+        </div>
+
+        <!-- Pick any hero -->
+        <div id="roster" class="roster"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+    <script>
+        var heroes = [
+            {
+                HName: "Aamon", FName: "Aamon Paxley", Title: "Duke Paxley", AType: "Pure Assassin", Difficulty: 6,
+                Description: "Aamon is a cunning assassin who strikes from the shadows, dealing massive damage to his enemies.",
+                Image: "img/aamon.jpg", Thumbnail: "img/aamon-thumb.jpg", Position: "60% 50%" },
+            { 
+                HName: "Alucard", FName: "Alucard", Title: "Demon Hunter", AType: "Secondary Assassin", Difficulty: 4, 
+                Description: "Alucard is a skilled demon hunter who detest the darkness", 
+                Image: "img/alucard.jpg", Thumbnail: "img/alucard-thumb.jpg" },
+            { 
+                HName: "Arlott", FName: "Arlott", Title: "Lone Lancer", AType: "Secondary Assassin", Difficulty: 7, 
+                Description: "Arlott is a A demon-human hybrid who thirst for vengeance against both the Church and demons.", 
+                Image: "img/arlott.jpg", Thumbnail: "img/arlott-thumb.jpg", Position: "30% 50%" },
+            { 
+                HName: "Benedetta", FName: "Benedetta", Title: "Shadow Ranger", AType: "Primary Assassin", Difficulty: 8, 
+                Description: "Benedetta is a skilled shadow ranger who fights for hope.", 
+                Image: "img/benedetta.jpg", Thumbnail: "img/benedetta-thumb.jpg", Position: "40% 50%" },
+            { 
+                HName: "Fanny", FName: "Fanny Wertz", Title: "Blade Dancer", AType: "Pure Assassin", Difficulty: 10, 
+                Description: "Fanny is a graceful blade dancer who moves in the sky.", 
+                Image: "img/fanny.jpg", Thumbnail: "img/fanny-thumb.jpg", Position: "10% 50%" },
+            { 
+                HName: "Gusion", FName: "Gusion Paxley", Title: "Holy Blade", AType: "Pure Assassin", Difficulty: 8, 
+                Description: "Gusion is a rebellious son of House Paxley who wields a holy blade.", 
+                Image: "img/gusion.jpg", Thumbnail: "img/gusion-thumb.jpg" },
+            { 
+                HName: "Hanzo", FName: "Hanzo", Title: "Akuma Ninja", AType: "Pure Assassin", Difficulty: 5, 
+                Description: "Hanzo is the genius ninja of the Shadow Sect in the Scarlet Shadow", 
+                Image: "img/hanzo.jpg", Thumbnail: "img/hanzo-thumb.jpg" },
+            { 
+                HName: "Harley", FName: "Harley of House Vance", Title: "Mage Genius", AType: "Primary Assassin", Difficulty: 4, 
+                Description: "Harley is the young mage whose powers awakened once thrust into danger and who now arrives at the Magic Academy to study.", 
+                Image: "img/harley.jpg", Thumbnail: "img/harley-thumb.jpg" },
+            { 
+                HName: "Hayabusa", FName: "Hayabusa", Title: "Crimsom Shadow", AType: "Pure Assassin", Difficulty: 6, 
+                Description: "Hayabusa is the young leader of the Shadow Sect who wields his blade through moonless nights, walking the path of nindo without fear.", 
+                Image: "img/hayabusa.jpg", Thumbnail: "img/hayabusa-thumb.jpg" },
+            { 
+                HName: "Helcurt", FName: "Helcurt", Title: "Shadowbringer", AType: "Pure Assassin", Difficulty: 4, 
+                Description: "Helcurt is a member of a mysterious race with light-swallowing ability.", 
+                Image: "img/helcurt.jpg", Thumbnail: "img/helcurt-thumb.jpg" },
+            { 
+                HName: "Hirara", FName: "Hirara", Title: "Fallen Scarlet", AType: "Pure Assassin", Difficulty: 7, 
+                Description: "Hirara is a geisha ninja from the Scarlet Shadow. In her twisted mind, death is the ultimate salvation.", 
+                Image: "img/hirara.jpg", Thumbnail: "img/hirara-thumb.jpg" },
+            { 
+                HName: "Joy", FName: "Joy", Title: "Flash of Miracle", AType: "Pure Assassin", Difficulty: 9, 
+                Description: "The “Child Miracle” who returned to the Leonins after years of wandering.", 
+                Image: "img/joy.jpg", Thumbnail: "img/joy-thumb.jpg" },
+            { 
+                HName: "Julian", FName: "Julian", Title: "Scarlet Raven", AType: "Primary Assassin", Difficulty: 5, 
+                Description: "Julian is a raven assassin of the Church of Light, a young boy who's in search of his home.", 
+                Image: "img/julian.jpg", Thumbnail: "img/julian-thumb.jpg" },
+            { 
+                HName: "Kadita", FName: "Kadita", Title: "Ocean Goddess", AType: "Secondary Assassin", Difficulty: 6, 
+                Description: "Kadita is the Fair Queen of the Southern Seas.", 
+                Image: "img/kadita.jpg", Thumbnail: "img/kadita-thumb.jpg" },
+            { 
+                HName: "Karina", FName: "Karina", Title: "Shadow Blade", AType: "Pure Assassin", Difficulty: 5, 
+                Description: "Karina is the assassin who dances upon blades.", 
+                Image: "img/karina.jpg", Thumbnail: "img/karina-thumb.jpg" },
+            { 
+                HName: "Lancelot", FName: "Lancelot of House Baroque", Title: "Blade of Roses", AType: "Pure Assassin", Difficulty: 5, 
+                Description: "Lancelot is a gifted young man who infuses the power of magic into his swordsmanship.", 
+                Image: "img/lancelot.jpg", Thumbnail: "img/lancelot-thumb.jpg" },
+            { 
+                HName: "Lesley", FName: "Lesley of House Vance", Title: "Deadly Sniper", AType: "Secondary Assassin", Difficulty: 5, 
+                Description: "Lesley is a adopted daughter of House Vance, a clandestine sniper.", 
+                Image: "img/lesley.jpg", Thumbnail: "img/lesley-thumb.jpg" },
+            { 
+                HName: "Ling", FName: "Ling", Title: "Cyan Finch", AType: "Pure Assassin", Difficulty: 7, 
+                Description: "Ling is a graceful, free-soaring Finch and the Oriental Fighter who inherited the Vermilion Bird's power.", 
+                Image: "img/ling.jpg", Thumbnail: "img/ling-thumb.jpg" },
+            { 
+                HName: "Mathilda", FName: "Mathilda", Title: "Swift Plume", AType: "Secondary Assassin", Difficulty: 7, 
+                Description: "Mathilda is a tribal girl who has potential to carry her teammates.", 
+                Image: "img/mathilda.jpg", Thumbnail: "img/mathilda-thumb.jpg" },
+            { 
+                HName: "Natalia", FName: "Natalia", Title: "Bright Claw", AType: "Pure Assassin", Difficulty: 9, 
+                Description: "Natalia is the Church of Light's top assassin.", 
+                Image: "img/natalia.jpg", Thumbnail: "img/natalia-thumb.jpg" },
+            { 
+                HName: "Nolan", FName: "Nolan Osborne", Title: "Cosmic Wayfinder", AType: "Pure Assassin", Difficulty: 6, 
+                Description: "Nolan is a scholar of Eruditio who travered the multiverse to save his daughter.", 
+                Image: "img/nolan.jpg", Thumbnail: "img/nolan-thumb.jpg" },
+            { 
+                HName: "Paquito", FName: "Paquito", Title: "The Heavenly Fist", AType: " Secondary Assassin", Difficulty: 9, 
+                Description: "Paquito is a firm and righteous champion.", 
+                Image: "img/paquito.jpg", Thumbnail: "img/paquito-thumb.jpg" },
+            { 
+                HName: "Saber", FName: "Duan Meng", Title: "Wandering Sword", AType: "Pure Assassin", Difficulty: 3, 
+                Description: "Saber is a master swordsman in search of his true self.", 
+                Image: "img/saber.jpg", Thumbnail: "img/saber-thumb.jpg" },
+            { 
+                HName: "Selena", FName: "Selena", Title: "Abyssal Witch", AType: "Primary Assassin", Difficulty: 8, 
+                Description: "Selena is a deceiving young Dark Elf.", 
+                Image: "img/selena.jpg", Thumbnail: "img/selena-thumb.jpg" },
+            { 
+                HName: "Sora", FName: "Sora", Title: "Shifting Cloud", AType: "Secondary Assassin", Difficulty: 5, 
+                Description: "Sora is a pure and free-spirited boy with unshakeable resolve, drifting across the golden sands.", 
+                Image: "img/sora.jpg", Thumbnail: "img/sora-thumb.jpg" },
+            { 
+                HName: "Suyou", FName: "Suyuo", Title: "Mask of the Immortal", AType: "Primary Assassin", Difficulty: 5, 
+                Description: "Suyuo is an exorcist from Zhu'an who has inherited the power of the Immortal Nuo.", 
+                Image: "img/suyou.jpg", Thumbnail: "img/suyou-thumb.jpg" },
+            { 
+                HName: "Yi Sun-Shin", FName: "Yi Sun-Shin", Title: "Paenlong Legend", AType: "Primary Assassin", Difficulty: 7, 
+                Description: "Yi Sun-Shin is the Leader of the City of the Dragon Fleet.", 
+                Image: "img/yss.jpg", Thumbnail: "img/yss-thumb.jpg" },
+            { 
+                HName: "Yin", FName: "Yin", Title: "Martial Genius", AType: "Secondary Assassin", Difficulty: 4, 
+                Description: "Yin is a gifted Kungfu boy possessed by an Evil God.", 
+                Image: "img/yin.jpg", Thumbnail: "img/yin-thumb.jpg" },
+            { 
+                HName: "Zilong", FName: "Zilong ", Title: "Spear of Dragon", AType: "Secondary Assassin", Difficulty: 1,
+                Description: "Zilong is the Guardian of the Dragon Altar and the Oriental Fighter who inherited the Cloud Dragon's power.", 
+                Image: "img/zilong.jpg", Thumbnail: "img/zilong-thumb.jpg" }
+        ];
+
+        var $ = function (id) { return document.getElementById(id); };
+        var current = 0;
+
+        var Tiers = {
+            "Pure Assassin": "255,60,90",
+            "Primary Assassin": "255,176,32",
+            "Secondary Assassin": "60,200,255"
+        };
+        function tierRGB(h) { return Tiers[(h.AType || "").trim()] || "170,120,255"; }
+
+        function diffLabel(n) {
+            return n >= 10 ? "Extreme" : n >= 8 ? "Very Hard" : n >= 6 ? "Hard" : n >= 4 ? "Moderate" : n >= 1 ? "Easy" : "";
+        }
+
+        function setText(id, value, fallback) {
+            var el = $(id);
+            value = (value || "").trim();
+            el.textContent = value || fallback;
+            el.classList.toggle("empty", !value && fallback !== "");
+            el.style.display = (value || fallback) ? "" : "none";
+        }
+
+        function show(i, scrollRoster) {
+            current = i;
+            var h = heroes[i];
+            var rgb = tierRGB(h);
+
+            document.documentElement.style.setProperty("--accent", "rgb(" + rgb + ")");
+            document.documentElement.style.setProperty("--accent-rgb", rgb);
+
+            setText("role", h.AType, "Type coming soon");
+            setText("name", h.HName, "");
+            setText("title", h.Title, "");
+            var full = (h.FName || "").trim();
+            setText("full", full.toLowerCase() === h.HName.toLowerCase() ? "" : full, "");
+            setText("desc", h.Description, "Info coming soon...");
+
+            var img = $("img");
+            $("ph").textContent = h.HName.charAt(0);
+            img.style.display = "block";
+            img.onerror = function () { img.style.display = "none"; };
+            img.alt = h.HName;
+            img.src = h.Image || "";
+            img.style.objectPosition = h.Position || "";
+
+            var d = h.Difficulty || 0;
+            $("diffText").textContent = d ? d + "/10 \u00b7 " + diffLabel(d) : "-";
+            var bar = $("bar");
+            bar.innerHTML = "";
+            for (var n = 1; n <= 10; n++) {
+                var s = document.createElement("div");
+                s.className = "seg" + (n <= d ? " on" : "");
+                bar.appendChild(s);
+            }
+
+            $("counter").textContent = (i + 1) + " / " + heroes.length;
+            $("prevBtn").disabled = (i === 0);
+            $("nextBtn").disabled = (i === heroes.length - 1);
+
+            var thumbs = document.querySelectorAll(".thumb");
+            thumbs.forEach(function (t, n) { t.classList.toggle("active", n === i); });
+            if (scrollRoster) {
+                var t = thumbs[i], r = $("roster");
+                r.scrollTo({ left: t.offsetLeft - r.clientWidth / 2 + t.clientWidth / 2, behavior: "smooth" });
+            }
+
+            var card = $("card");
+            card.classList.remove("hero-fade");
+            void card.offsetWidth;
+            card.classList.add("hero-fade");
+        }
+        heroes.forEach(function (h, i) {
+            var b = document.createElement("button");
+            b.className = "thumb";
+            b.style.setProperty("--t", "rgb(" + tierRGB(h) + ")");
+
+            var pic = document.createElement("span");
+            pic.className = "pic";
+
+            var letter = document.createElement("span");
+            letter.className = "tl";
+            letter.textContent = h.HName.charAt(0);
+
+            var im = document.createElement("img");
+            im.src = h.Thumbnail || "";
+            im.alt = "";
+            im.onerror = function () { im.style.display = "none"; };
+
+            pic.append(letter, im);
+            b.append(pic, h.HName);
+            b.onclick = function () { show(i, true); };
+            $("roster").appendChild(b);
+        });
+
+        $("prevBtn").onclick = function () { if (current > 0) show(current - 1, true); };
+        $("nextBtn").onclick = function () { if (current < heroes.length - 1) show(current + 1, true); };
+
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "ArrowLeft" && current > 0) show(current - 1, true);
+            if (e.key === "ArrowRight" && current < heroes.length - 1) show(current + 1, true);
+        });
+
+        var startX = null;
+        $("card").addEventListener("touchstart", function (e) { startX = e.touches[0].clientX; });
+        $("card").addEventListener("touchend", function (e) {
+            if (startX === null) return;
+            var dx = e.changedTouches[0].clientX - startX;
+            if (dx < -50 && current < heroes.length - 1) show(current + 1, true);
+            if (dx > 50 && current > 0) show(current - 1, true);
+            startX = null;
+        });
+
+        show(0, false);
+    </script>
+</body>
+
+</html>
