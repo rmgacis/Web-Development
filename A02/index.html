@@ -348,15 +348,15 @@
             if (e.key === "ArrowRight" && current < heroes.length - 1) show(current + 1, true);
         });
 
-        //var startX = null;
-        //$("card").addEventListener("touchstart", function (e) { startX = e.touches[0].clientX; });
-        //$("card").addEventListener("touchend", function (e) {
-        //    if (startX === null) return;
-        //    var dx = e.changedTouches[0].clientX - startX;
-        //    if (dx < -50 && current < heroes.length - 1) show(current + 1, true);
-        //    if (dx > 50 && current > 0) show(current - 1, true);
-        //    startX = null;
-        //});
+        var startX = null;
+        $("card").addEventListener("touchstart", function (e) { startX = e.touches[0].clientX; });
+        $("card").addEventListener("touchend", function (e) {
+            if (startX === null) return;
+            var dx = e.changedTouches[0].clientX - startX;
+            if (dx < -50 && current < heroes.length - 1) show(current + 1, true);
+            if (dx > 50 && current > 0) show(current - 1, true);
+            startX = null;
+        });
 
         show(0, false);
     </script>
