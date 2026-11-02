@@ -12,7 +12,14 @@
 
 <body>
   <div class="stage container-fluid d-flex flex-column">
-    <div class="brandline d-flex align-items-center justify-content-between flex-wrap gap-2"><div class="brand"><span class="brandmark">✦</span> MLBB <span style="color:var(--gold)">DRAFT ARENA</span></div><span class="online">Custom draft simulator</span></div>
+    <div class="brandline d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div class="brand"><span class="brandmark"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"
+            aria-hidden="true">
+            <path
+              d="M12 2C12.8 7.5 16.5 11.2 22 12C16.5 12.8 12.8 16.5 12 22C11.2 16.5 7.5 12.8 2 12C7.5 11.2 11.2 7.5 12 2Z" />
+          </svg></span> MLBB <span style="color:var(--gold)">DRAFT ARENA</span></div><span class="online">Custom draft
+        simulator</span>
+    </div>
     <header class="bar row g-2 align-items-center">
       <div class="bans col-6 col-md-4 order-2 order-md-1 d-flex" id="bansL"></div>
       <div class="title col-12 col-md-4 order-1 order-md-2 text-center">
@@ -38,10 +45,12 @@
     <main class="row g-2 g-xl-3 d-none flex-grow-1" id="draft">
       <aside class="picks col-6 col-md-3 col-xl-2 order-1 d-flex flex-column" id="pickL"></aside>
       <section class="pool col-12 col-md-6 col-xl-8 order-3 order-md-2 d-flex flex-column">
-        <div class="pool-heading d-flex justify-content-between align-items-center flex-wrap"><strong>Hero selection</strong><span>Choose your champion</span></div>
+        <div class="pool-heading d-flex justify-content-between align-items-center flex-wrap"><strong>Hero
+            selection</strong><span>Choose your champion</span></div>
         <div class="top d-flex flex-column gap-2">
-          <div class="tabs d-flex flex-wrap gap-1" id="tabs"></div><input type="search" class="form-control form-control-sm search" id="search"
-            placeholder="⌕  Search heroes by name..." aria-label="Search hero">
+          <div class="tabs d-flex flex-wrap gap-1" id="tabs"></div><input type="search"
+            class="form-control form-control-sm search" id="search" placeholder="⌕  Search heroes by name..."
+            aria-label="Search hero">
         </div>
         <div class="scroll">
           <div class="heads d-grid gap-2" id="pool"></div>

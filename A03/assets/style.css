@@ -96,6 +96,10 @@ input:focus-visible {
   font-size: 1.25rem
 }
 
+.brandmark svg {
+  display: block;
+}
+
 .eyebrow {
   font-size: .78rem;
   text-transform: uppercase;
