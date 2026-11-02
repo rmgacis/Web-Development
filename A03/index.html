@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MLBB Draft Pick</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+
+<body>
+  <div class="stage container-fluid d-flex flex-column">
+    <div class="brandline d-flex align-items-center justify-content-between flex-wrap gap-2"><div class="brand"><span class="brandmark">✦</span> MLBB <span style="color:var(--gold)">DRAFT ARENA</span></div><span class="online">Custom draft simulator</span></div>
+    <header class="bar row g-2 align-items-center">
+      <div class="bans col-6 col-md-4 order-2 order-md-1 d-flex" id="bansL"></div>
+      <div class="title col-12 col-md-4 order-1 order-md-2 text-center">
+        <div class="eyebrow">Match preparation • 5v5</div>
+        <h1 id="phase">Drafting Phase</h1>
+        <div id="sub">Loading heroes…</div>
+      </div>
+      <div class="bans col-6 col-md-4 order-3 d-flex justify-content-end" id="bansR"></div>
+    </header>
+    <div class="alert alert-danger d-none mt-3" id="error"></div>
+
+    <div class="section-kicker" id="welcomeKicker">THE BATTLE STARTS HERE</div>
+    <div class="mx-auto text-center mt-4 w-100" id="picker">
+      <h2 class="h5 mb-1">Choose your side</h2>
+      <p class="intro">Build your dream lineup, outdraft the enemy, and dominate the Land of Dawn.</p>
+      <div class="row g-3">
+        <div class="col-6 red"><button class="side-btn" data-side="R">Red side<small>First pick</small></button></div>
+        <div class="col-6 blue"><button class="side-btn" data-side="B">Blue side<small>Second pick</small></button>
+        </div>
+      </div>
+    </div>
+
+    <main class="row g-2 g-xl-3 d-none flex-grow-1" id="draft">
+      <aside class="picks col-6 col-md-3 col-xl-2 order-1 d-flex flex-column" id="pickL"></aside>
+      <section class="pool col-12 col-md-6 col-xl-8 order-3 order-md-2 d-flex flex-column">
+        <div class="pool-heading d-flex justify-content-between align-items-center flex-wrap"><strong>Hero selection</strong><span>Choose your champion</span></div>
+        <div class="top d-flex flex-column gap-2">
+          <div class="tabs d-flex flex-wrap gap-1" id="tabs"></div><input type="search" class="form-control form-control-sm search" id="search"
+            placeholder="⌕  Search heroes by name..." aria-label="Search hero">
+        </div>
+        <div class="scroll">
+          <div class="heads d-grid gap-2" id="pool"></div>
+        </div>
+        <div class="acts d-flex align-items-center flex-wrap gap-2">
+          <button class="btn btn-outline-light btn-sm" id="undo">Undo</button>
+          <button class="btn btn-outline-light btn-sm" id="reset">New draft</button>
+          <span class="msg text-center" id="msg"></span>
+          <button class="btn btn-outline-light" id="skip">Skip ban</button>
+          <button class="go" id="confirm">Ban</button>
+        </div>
+      </section>
+      <aside class="picks col-6 col-md-3 col-xl-2 order-2 order-md-3 d-flex flex-column" id="pickR"></aside>
+    </main>
+  </div>
+
+  <script>
+    const MLBB = "https://arena.rone.dev/api";
+    const Lanes = [["all", "All Lanes"], ["exp", "Exp Lane"], ["gold", "Gold Lane"], ["mid", "Mid Lane"], ["roam", "Roaming"], ["jungl", "Jungling"]];
+    const Sequence = "xR xB xR xB xR xB pR pB pB pR pR pB xB xR xB xR pB pR pR pB".split(" ");
+    const Phases = ["Banning", "Picking", "Banning", "Picking"];
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+    const cap = s => s[0].toUpperCase() + s.slice(1);
+    let laneIcons = {}, heroes = [], byId = {}, step = 0, sel = null, lane = "all", query = "", me = null;
+    let bans = {B: [], R: []}, picks = {B: [], R: []}, history = [];
+
+    async function loadHeroes() {
+      const all = {};
+      let index = 1, total = Infinity;
+      while (Object.keys(all).length < total) {
+        const res = await fetch(`${MLBB}/heroes/positions?size=100&index=${index}&order=asc`);
+        if (!res.ok) throw new Error("API returned " + res.status);
+        const json = await res.json();
+        const records = json.data.records || [];
+        total = json.data.total;
+        if (!records.length) break;
+        records.forEach(r => {
+          const d = r.data.hero.data;
+          (d.roadsort || []).filter(x => x && x.data).forEach(x => {laneIcons[String(x.data.road_sort_title).toLowerCase()] = x.data.road_sort_icon;});
+          const t = (arr, k) => (arr || []).filter(x => x && x.data).map(x => String(x.data[k]).toLowerCase());
+          all[r.data.hero_id] = {id: r.data.hero_id, name: d.name, img: d.smallmap, roles: t(d.sortid, "sort_title"), lanes: t(d.roadsort, "road_sort_title")};
+        });
+        index++;
+      }
+      heroes = Object.values(all).sort((a, b) => a.name.localeCompare(b.name));
+      byId = all;
+    }
+
+    const cur = () => step < Sequence.length ? {type: Sequence[step][0], side: Sequence[step][1]} : null;
+    const used = () => new Set([...bans.B, ...bans.R, ...picks.B, ...picks.R].filter(x => x != null));
+    const img = h => `<img src="${esc(h.img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
+
+    function bansHtml(side, c) {
+      const act = c && c.side === side && c.type === "x";
+      let h = "";
+      for (let k = 0; k < 5; k++) {
+        let id = bans[side][k], cls = "b";
+        if (id === undefined) {if (act && k === bans[side].length) {cls += " now"; if (sel) {id = sel; cls += " pv";} } }
+        else if (id !== null) cls += " on";
+        h += `<div class="${cls}">${id == null ? (id === null ? "–" : "?") : img(byId[id])}</div>`;
+      }
+      return h;
+    }
+    function picksHtml(side, c) {
+      const act = c && c.side === side && c.type === "p";
+      let h = "";
+      for (let k = 0; k < 5; k++) {
+        let id = picks[side][k], cls = "p";
+        if (id === undefined && act && k === picks[side].length) {cls += " now"; if (sel) {id = sel; cls += " pv";} }
+        h += id != null ? `<div class="${cls} f"><i>${k + 1}</i>${img(byId[id])}<span>${esc(byId[id].name)}</span></div>` : `<div class="${cls}"><i>${k + 1}</i></div>`;
+      }
+      return h;
+    }
+
+    function render() {
+      if (!me) return;
+      const c = cur(), L = me, R = me === "B" ? "R" : "B";
+      [["bansL", L], ["bansR", R]].forEach(([id, s]) => {$(id).className = "bans col-6 col-md-4 d-flex " + (id === "bansL" ? "order-2 order-md-1" : "order-3 justify-content-end") + " " + (s === "R" ? "red" : "blue"); $(id).innerHTML = bansHtml(s, c);});
+      [["pickL", L, ""], ["pickR", R, " rt"]].forEach(([id, s, x]) => {
+        $(id).className = "picks d-flex flex-column col-6 col-md-3 col-xl-2 " + (id === "pickL" ? "order-1" : "order-2 order-md-3") + " " + (s === "R" ? "red" : "blue") + x;
+        $(id).innerHTML = `<div class="team-label">${s === "R" ? "Red" : "Blue"} team ${s === me ? "· You" : "· Opponent"}</div>` + picksHtml(s, c);
+      });
+      if (c) {
+        $("phase").textContent = Phases[step < 6 ? 0 : step < 12 ? 1 : step < 16 ? 2 : 3];
+        $("sub").textContent = `${c.side === "R" ? "Red" : "Blue"} Side`;
+        $("sub").style.color = c.side === "R" ? "#ff7a81" : "#78adff";
+      } else {$("phase").textContent = "Draft complete"; $("sub").textContent = "Both teams are set"; $("sub").style.color = "var(--gold)";}
+
+      $("tabs").innerHTML = Lanes.map(([k, t]) => {
+        const icon = k === "all" ? null : laneIcons[Object.keys(laneIcons).find(n => n.includes(k))];
+        return `<button class="${lane === k ? "act" : ""}" data-lane="${k}">${icon ? `<img class="lane-ic" src="${esc(icon)}" alt="" onerror="this.remove()">` : ""}${t}</button>`;
+      }).join("");
+      const taken = used(), banned = new Set([...bans.B, ...bans.R]);
+      $("pool").innerHTML = heroes
+        .filter(h => (lane === "all" || h.lanes.some(l => l.includes(lane))) && h.name.toLowerCase().includes(query.toLowerCase()))
+        .map(h => `<div class="col d-flex justify-content-center"><button class="hero${sel === h.id ? " sel" : ""}${banned.has(h.id) ? " ban" : taken.has(h.id) ? " used" : ""}" data-id="${h.id}" title="${esc(h.name)} · ${esc(h.roles.map(cap).join(" / "))}" aria-label="${esc(h.name)}" ${taken.has(h.id) || !c ? "disabled" : ""}><span class="hero-portrait">${img(h)}</span><span class="hero-name">${esc(h.name)}</span></button></div>`).join("");
+
+      $("msg").textContent = !c ? "" : sel ? byId[sel].name : "Select a hero";
+      $("confirm").textContent = c && c.type === "p" ? "Lock in" : "Ban";
+      $("confirm").disabled = !c || !sel;
+      $("skip").classList.toggle("d-none", !(c && c.type === "x"));
+      $("undo").disabled = !history.length;
+    }
+
+    function commit(id) {
+      const c = cur();
+      (c.type === "x" ? bans : picks)[c.side].push(id);
+      history.push(c); step++; sel = null; render();
+    }
+    document.addEventListener("click", e => {
+      const l = e.target.closest("[data-lane]"), h = e.target.closest("[data-id]");
+      if (l) {lane = l.dataset.lane; render();}
+      if (h && !h.disabled) {sel = Number(h.dataset.id); render();}
+    });
+    $("search").addEventListener("input", e => {query = e.target.value; render();});
+    $("confirm").onclick = () => {if (sel) commit(sel);};
+    $("skip").onclick = () => commit(null);
+    $("undo").onclick = () => {
+      if (!history.length) return;
+      const last = history.pop();
+      (last.type === "x" ? bans : picks)[last.side].pop();
+      step--; sel = null; render();
+    };
+    function showDraft(on) {$("picker").classList.toggle("d-none", on); $("welcomeKicker").classList.toggle("d-none", on); $("draft").classList.toggle("d-none", !on);}
+    document.querySelectorAll("[data-side]").forEach(b => b.onclick = () => {
+      if (!heroes.length) return;
+      me = b.dataset.side; showDraft(true); render();
+    });
+    $("reset").onclick = () => {
+      step = 0; sel = null; history = []; bans = {B: [], R: []}; picks = {B: [], R: []}; lane = "all"; query = ""; $("search").value = "";
+      me = null; showDraft(false);
+      ["bansL", "bansR"].forEach(id => $(id).innerHTML = "");
+      $("phase").textContent = "Custom draft"; $("sub").textContent = "Choose your side"; $("sub").style.color = "";
+    };
+    loadHeroes().then(() => {$("sub").textContent = "Choose your side";}).catch(err => {
+      $("sub").textContent = "Could not load heroes";
+      $("error").classList.remove("d-none");
+      $("error").textContent = "The hero list failed to load (" + err.message + "). Check your connection, or whether the API allows requests from this page’s address, then refresh.";
+    });
+  </script>
+</body>
+
+</html>
